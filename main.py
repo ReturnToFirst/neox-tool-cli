@@ -10,23 +10,21 @@ import io
 
 from decompress import zflag_decompress, special_decompress
 from decrypt import file_decrypt, XORDecryptor
-from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension, get_info_size
-
-
+import utils
 
 # reads an entry of the NPK index, if its 28 the file sign is 32 bits and if its 32 its 64 bits (NeoX 1.2 / 2 shienanigans)
 def read_index(f, info_size, x, nxfn_files, index_offset):
     if info_size == 28:
-        file_sign = [readuint32(f), f.tell() + index_offset]
+        file_sign = [utils.readuint32(f), f.tell() + index_offset]
     elif info_size == 32:
-        file_sign = [readuint64(f), f.tell() + index_offset]
-    file_offset = readuint32(f)
-    file_length = readuint32(f)
-    file_original_length = readuint32(f)
-    zcrc = readuint32(f)                #compressed crc
-    crc = readuint32(f)                 #decompressed crc
-    zip_flag = readuint16(f)
-    file_flag = readuint16(f)
+        file_sign = [utils.readuint64(f), f.tell() + index_offset]
+    file_offset = utils.readuint32(f)
+    file_length = utils.readuint32(f)
+    file_original_length = utils.readuint32(f)
+    zcrc = utils.readuint32(f)                #compressed crc
+    crc = utils.readuint32(f)                 #decompressed crc
+    zip_flag = utils.readuint16(f)
+    file_flag = utils.readuint16(f)
     file_structure = nxfn_files[x] if nxfn_files else None
     return (
         file_sign,
@@ -39,16 +37,6 @@ def read_index(f, info_size, x, nxfn_files, index_offset):
         zip_flag,
         file_flag,
         )
-
-# data readers
-def readuint64(f):
-    return struct.unpack('Q', f.read(8))[0]
-def readuint32(f):
-    return struct.unpack('I', f.read(4))[0]
-def readuint16(f):
-    return struct.unpack('H', f.read(2))[0]
-def readuint8(f):
-    return struct.unpack('B', f.read(1))[0]
 
 # main code
 def unpack(args):
@@ -96,27 +84,27 @@ def unpack(args):
                 logging.info("FILE TYPE: %s", data.decode())
             
             # amount of files
-            files = readuint32(f)
+            files = utils.readuint32(f)
             logging.info("FILES: %s", files)
             
             #var1, its always set to 0
-            var1 = readuint32(f)
+            var1 = utils.readuint32(f)
             logging.debug("UNKNOWN: %s", var1)
             
             #determines what i call "encryption mode", its 256 when theres NXFN file data at the end
-            encryption_mode = readuint32(f)
+            encryption_mode = utils.readuint32(f)
             logging.debug("ENCRYPTMODE: %s", encryption_mode)
             
             #determines what i call "hash mode", it can be 0, 1, 2, and 3, 0 and 1 are fine, 3 is not supported (i think) and 2 is unknown
-            hash_mode = readuint32(f)
+            hash_mode = utils.readuint32(f)
             logging.info("HASHMODE: %s", hash_mode)
             
             #offset where the index starts
-            index_offset = readuint32(f)
+            index_offset = utils.readuint32(f)
             logging.info("INDEXOFFSET: %s", index_offset)
 
             #determines the "log_level_size" aka the size of each file offset data, it can be 28 or 32 bytes
-            info_size = get_info_size(f, var1, hash_mode, encryption_mode, index_offset, files)
+            info_size = utils.get_info_size(f, hash_mode, encryption_mode, index_offset, files)
             logging.info("INDEXSIZE: %s", info_size)
 
             index_table = []
@@ -223,19 +211,19 @@ def unpack(args):
                     data = xor_decryptor.decrypt(data)
                     
                 #prints out the decryption algorithm type
-                logging.debug("DECRYPTION: %s", get_decryption_algorithm_name(file_flag))
+                logging.debug("DECRYPTION: %s", utils.get_decryption_algorithm_name(file_flag))
 
                 #does the decryption
                 data = file_decrypt(file_flag, data, args.key, crc, file_length, file_original_length)
 
                 #prints out the compression type
-                logging.debug("COMPRESSION: %s", get_decompression_algorithm_name(zflag))
+                logging.debug("COMPRESSION: %s", utils.get_decompression_algorithm_name(zflag))
 
                 #does the decompression
                 data = zflag_decompress(zflag, data, file_original_length)
                     
                 #gets the compression type and prints it
-                compression = parse_compression_type(data)
+                compression = utils.parse_compression_type(data)
                 logging.debug("COMPRESSION1: %s", compression.upper() if compression != None else "None")
 
                 #does the special decompresison type (NXS and ROTOR)
@@ -266,7 +254,7 @@ def unpack(args):
                 #tries to guess the extension of the file
 
                 if not file_structure:
-                    ext = parse_extension(data)
+                    ext = utils.parse_extension(data)
                     file_output += ext
                 
                 logging.info("FILENAME: %s", file_output)
