@@ -5,22 +5,16 @@ import argparse
 import zipfile
 import logging
 import tqdm
+import glob
+import io
 
 from decompress import zflag_decompress, special_decompress
 from decrypt import file_decrypt, XORDecryptor
-from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension
+from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension, get_info_size
 
-#determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data 
-def determine_info_size(f, var1, hashmode, encryptmode, index_offset, files):
-    if encryptmode == 256 or hashmode == 2:
-        return 0x1C
-    indexbuf = f.tell()
-    f.seek(index_offset)
-    buf = f.read()
-    f.seek(indexbuf)
-    return len(buf) // files
 
-#reads an entry of the NPK index, if its 28 the file sign is 32 bits and if its 32 its 64 bits (NeoX 1.2 / 2 shienanigans)
+
+# reads an entry of the NPK index, if its 28 the file sign is 32 bits and if its 32 its 64 bits (NeoX 1.2 / 2 shienanigans)
 def read_index(f, info_size, x, nxfn_files, index_offset):
     if info_size == 28:
         file_sign = [readuint32(f), f.tell() + index_offset]
@@ -46,7 +40,7 @@ def read_index(f, info_size, x, nxfn_files, index_offset):
         file_flag,
         )
 
-#data readers
+# data readers
 def readuint64(f):
     return struct.unpack('Q', f.read(8))[0]
 def readuint32(f):
@@ -57,12 +51,12 @@ def readuint8(f):
     return struct.unpack('B', f.read(1))[0]
 
 # main code
-def unpack(args, statusBar=None):
+def unpack(args):
     allfiles = []
     try:
-        #determines the files which the reader will have to operate on
+        # if input path is not provided, scan current directory
         if args.input == None:
-            allfiles = ["./" + x for x in os.listdir(args.input) if x.endswith(".npk")]
+            allfiles = glob.glob("*.npk")
         elif os.path.isdir(args.input):
             allfiles = [args.input + "/" + x for x in os.listdir(args.input) if x.endswith(".npk")]
         else:
@@ -122,7 +116,7 @@ def unpack(args, statusBar=None):
             logging.info("INDEXOFFSET: %s", index_offset)
 
             #determines the "log_level_size" aka the size of each file offset data, it can be 28 or 32 bytes
-            info_size = determine_info_size(f, var1, hash_mode, encryption_mode, index_offset, files)
+            info_size = get_info_size(f, var1, hash_mode, encryption_mode, index_offset, files)
             logging.info("INDEXSIZE: %s", info_size)
 
             index_table = []
