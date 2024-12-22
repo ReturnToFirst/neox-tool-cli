@@ -1,5 +1,6 @@
 import io
 import struct
+
 # Return name of decryption algorithm based on the file_flag index parameter
 def get_decryption_algorithm_name(decryption_flag: int = 0) -> str:
     decryption_algorithms = {
@@ -22,14 +23,14 @@ def get_decompression_algorithm_name(compression_flag: int = 0) -> str:
     }
     return compression_algorithms.get(compression_flag, None)
 
-def readuint64(f: io.BufferedReader):
+def readuint64(f: io.BufferedReader) -> int:
     return struct.unpack('Q', f.read(8))[0]
 
-def readuint32(f: io.BufferedReader):
+def readuint32(f: io.BufferedReader) -> int:
     return struct.unpack('I', f.read(4))[0]
 
-def readuint16(f: io.BufferedReader):
+def readuint16(f: io.BufferedReader) -> int:
     return struct.unpack('H', f.read(2))[0]
 
-def readuint8(f: io.BufferedReader):
+def readuint8(f: io.BufferedReader) -> int:
     return struct.unpack('B', f.read(1))[0]
