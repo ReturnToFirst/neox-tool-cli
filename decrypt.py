@@ -11,9 +11,6 @@ def file_decrypt(flag, data, key=None, crc=0, file_length=0, file_original_lengt
                 size = 0x80
 
             key = [(key + x) & 0xFF for x in range(0, 0x100)]
-            #these keys are for different games, check the "keys.txt" file for more information
-            #key1: 150 + x   (Onmyoji, Onmyoji RPG)
-            #key2:  -250 + x (HPMA)
             data = bytearray(data)
             for j in range(size):
                 data[j] = data[j] ^ key[j % 0xff]

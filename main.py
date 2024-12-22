@@ -4,8 +4,8 @@ import tempfile
 import argparse
 import zipfile
 
-from decompression import zflag_decompress, special_decompress
-from decryption import file_decrypt
+from decompress import zflag_decompress, special_decompress
+from decrypt import file_decrypt
 from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension
 from key import XORDecryptor
 from timeit import default_timer as timer
