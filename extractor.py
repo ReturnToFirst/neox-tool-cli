@@ -7,7 +7,7 @@ import zipfile
 from decompression import zflag_decompress, special_decompress, decompression_algorithm
 from decryption import file_decrypt, decryption_algorithm
 from detection import get_ext, get_compression
-from key import Keys
+from key import XORDecryptor
 from timeit import default_timer as timer
 
 #determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data 
@@ -97,7 +97,7 @@ def unpack(args, statusBar=None):
         print("No NPK files found in that folder")
         
     #sets the decryption keys for the custom XOR cypher
-    keys = Keys()
+    xor_decryptor = XORDecryptor(args.xor_key_file)
 
     #goes through every file
     for output in allfiles:
@@ -193,7 +193,7 @@ def unpack(args, statusBar=None):
 
                 #if its an EXPK file, it decodes it with the custom XOR key
                 if pkg_type:
-                    data = keys.decrypt(data)
+                    data = xor_decryptor.decrypt(data)
                     
                 #writes the data
                 tmp.write(data)
@@ -260,7 +260,7 @@ def unpack(args, statusBar=None):
 
                 #if its an EXPK file,it decrypts the data
                 if pkg_type:
-                    data = keys.decrypt(data)
+                    data = xor_decryptor.decrypt(data)
                     
                 #prints out the decryption algorithm type    
                 print_data(args.verbose, 5,"DECRYPTION:", decryption_algorithm(file_flag), "FILE", file_offset)
@@ -329,20 +329,21 @@ def unpack(args, statusBar=None):
         print("FINISHED - DECOMPRESSED {} FILES IN {} seconds".format(files, end - start))
 
 
-#defines the parser arguments
+# defines the parser arguments
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', '--input', help="Specify the output of the file or directory, if not specified will do all the files in the current directory",type=str)
     parser.add_argument('-o', '--output', help="Specify the output of the file or directory, if not specified will do all the files in the current directory",type=str)
     parser.add_argument('-d', '--delete-compressed', action="store_true",help="Delete compressed files (such as ZStandard or ZIP files) after decompression")
     parser.add_argument('-v', '--verbose', help="Print verbosermation about the npk file(s) 1 to 5 for least to most verbose",type=int)
+    parser.add_argument('-x', '--xor-key-file', help="key file for xor decryption", default='neox_xor.key', type=str)
     parser.add_argument('-k', '--key', help="Select the key to use in the CRC128 hash algorithm (check the keys.txt for verbosermation)",type=int)
     parser.add_argument('-f', '--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
-    parser.add_argument('-s', '--selected-file', help="Only do the file selected", type=int)
+    parser.add_argument('-s', '--selected-file', help="Decompress Only file selected", type=bool, action="store_true")
     parser.add_argument('--nxfn-file', action="store_true",help="Writes a text file with the NXFN dump output (if applicable)")
     parser.add_argument('--no-nxfn',action="store_true", help="Disables NXFN file structure")
-    parser.add_argument('-c', '--convert-images', help="Automatically converts KTX, PVR and ASTC to PNG files (WARNING, SUPER SLOW)",action="store_true")
-    parser.add_argument('-e', '--include-empty', help="Prints empty files", action="store_false")
+    parser.add_argument('--convert-images', help="Automatically converts KTX, PVR and ASTC to PNG files (WARNING, SUPER SLOW)",action="store_true")
+    parser.add_argument('--include-empty', help="Prints empty files", action="store_false")
     parser.add_argument('-t', '--test', action='store_true', help='Export only one file from .npk file(s) for test')
     opt = parser.parse_args()
     return opt

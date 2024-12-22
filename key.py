@@ -1,16 +1,16 @@
 from copy import copy
 
-class Keys:
+class XORDecryptor:
     
     #inits the key
-    def __init__(self):
-        with open("neox_xor.key", "rb") as kr:
-            self.keys = kr.read()
+    def __init__(self, key_path):
+        with open(key_path, "rb") as kr:
+            self.xor_key = kr.read()
 
     #generates the key with a length of X numbers
     def gen_keys(self, length):
-        key_ = []
-        key_data = self.keys
+        key = []
+        key_data = self.xor_key
         key_index = 0
         key_tmp_index = 0
         for i in range(length):
@@ -21,8 +21,8 @@ class Keys:
             key_data[key_index % 256] = key_data[key_tmp_index]
             key_data[key_tmp_index] = tmp_data
             key_i = key_data[(key_data[key_index % 256] + tmp_data) % 256 & 0xFF]
-            key_.append(key_i)
-        self.keys = key_
+            key.append(key_i)
+        return key
 
     #makes sure the key is long enough
     def ensure_keys(self, length):
