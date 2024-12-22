@@ -1,3 +1,5 @@
+import io
+
 # Return name of decryption algorithm based on the file_flag index parameter
 def get_decryption_algorithm_name(decryption_flag: int) -> str:
     decryption_algorithms = {
@@ -10,20 +12,28 @@ def get_decryption_algorithm_name(decryption_flag: int) -> str:
 
     return decryption_algorithms.get(decryption_flag, None)
 
-def get_decompression_algorithm_name(zflag=0):
-    match zflag:
-        case 0:
-            return "NONE"
-        case 1:
-            return "ZLIB"
-        case 2:
-            return "LZ4"
-        case 3:
-            return "ZSTANDARD"
-        case 5:
-            return "ZSTANDARD - NOT WORKING??"
-    raise Exception("ERROR IN DECOMPRESSON ALGORITHM")
+def get_decompression_algorithm_name(compression_flag: int = 0) -> str:
+    if compression_flag == 0:
+        return "NONE"
+    elif compression_flag == 1:
+        return "ZLIB"
+    elif compression_flag == 2:
+        return "LZ4"
+    elif compression_flag == 3:
+        return "ZSTD"
+    elif compression_flag == 5:
+        return "Unknown"
+    return None
 
+# Determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data )
+def get_info_size(f:io.BufferedReader, hash_mode: int, encrypt_mode:int , index_offset:int , files_count: int):
+    if encrypt_mode == 256 or hash_mode == 2:
+        return 0x1C
+    indexbuf = f.tell()
+    f.seek(index_offset)
+    buf = f.read()
+    f.seek(indexbuf)
+    return len(buf) // files_count
 
 # Return name of compression type based on file"s header
 def parse_compression_type(data: bytes) -> str:
