@@ -1,39 +1,31 @@
 from copy import copy
 
 class XORDecryptor:
-    
+
     #inits the key
     def __init__(self, key_path):
         with open(key_path, "rb") as kr:
             self.xor_key = kr.read()
 
     #generates the key with a length of X numbers
-    def gen_keys(self, length):
-        key = []
-        key_data = self.xor_key
-        key_index = 0
-        key_tmp_index = 0
-        for i in range(length):
-            key_index += 1
-            tmp_data = key_data[key_index % 256]
-            key_tmp_index += tmp_data
-            key_tmp_index %= 256
-            key_data[key_index % 256] = key_data[key_tmp_index]
-            key_data[key_tmp_index] = tmp_data
-            key_i = key_data[(key_data[key_index % 256] + tmp_data) % 256 & 0xFF]
-            key.append(key_i)
-        return key
+    def generate_keys(self, length):
+        key_data = self.xor_key[:]  # Copy key state
+        i, j = 0
+        key = bytearray(length)  # Use bytearray for faster appends and memory efficiency
 
-    #makes sure the key is long enough
-    def ensure_keys(self, length):
-        if length > len(self.keys):
-            self.gen_keys(max(length, 2000000))
+        for k in range(length):
+            i = (i + 1) & 0xFF
+            j = (j + key_data[i]) & 0xFF
+
+            # Swap in a single line
+            key_data[i], key_data[j] = key_data[j], key_data[i]
+
+            # Generate key byte directly without extra variables
+            key[k] = key_data[(key_data[i] + key_data[j]) & 0xFF]
+        
+        return key
 
     #decrypts with the key
     def decrypt(self, data):
-        self.ensure_keys(len(data))
-        data = bytearray(data)
-        for i in range(len(data)):
-            data[i] = data[i] ^ self.keys[i]
-        return data
+        return [data ^ self.generate_keys(len(data))]
     
