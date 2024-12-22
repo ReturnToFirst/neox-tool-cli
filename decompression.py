@@ -1,18 +1,8 @@
-import ctypes, zlib, zstandard, lz4.block, zipfile, os
-
-def decompression_algorithm(zflag=0):
-    match zflag:
-        case 0:
-            return "NONE"
-        case 1:
-            return "ZLIB"
-        case 2:
-            return "LZ4"
-        case 3:
-            return "ZSTANDARD"
-        case 5:
-            return "ZSTANDARD - NOT WORKING??"
-    raise Exception("ERROR IN DECOMPRESSON ALGORITHM")
+import ctypes
+import zlib
+import zstandard
+import lz4.block
+import os
 
 def init_rotor():
     asdf_dn = 'j2h56ogodh3se'

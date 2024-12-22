@@ -4,9 +4,9 @@ import tempfile
 import argparse
 import zipfile
 
-from decompression import zflag_decompress, special_decompress, decompression_algorithm
+from decompression import zflag_decompress, special_decompress
 from decryption import file_decrypt
-from utils import get_compression_type, get_decryption_algorithm_name, parse_extension
+from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension
 from key import XORDecryptor
 from timeit import default_timer as timer
 
@@ -269,13 +269,13 @@ def unpack(args, statusBar=None):
                 data = file_decrypt(file_flag, data, args.key, crc, file_length, file_original_length)
 
                 #prints out the compression type
-                print_data(args.verbose, 5,"COMPRESSION:", get_decryption_algorithm_name(zflag), "FILE", file_offset)
+                print_data(args.verbose, 5,"COMPRESSION:", get_decompression_algorithm_name(zflag), "FILE", file_offset)
 
                 #does the decompression
                 data = zflag_decompress(zflag, data, file_original_length)
                     
                 #gets the compression type and prints it
-                compression = get_compression_type(data)
+                compression = parse_compression_type(data)
                 print_data(args.verbose, 4,"COMPRESSION1:", compression.upper() if compression != None else "None", "FILE", file_offset)
 
                 #does the special decompresison type (NXS and ROTOR)
@@ -306,7 +306,7 @@ def unpack(args, statusBar=None):
                 #tries to guess the extension of the file
 
                 if not file_structure:
-                    ext = get_ext(data)
+                    ext = parse_extension(data)
                     file_output += ext
                 
                 print_data(args.verbose, 3,"FILENAME:", file_output, "FILE", file_offset)

@@ -10,8 +10,23 @@ def get_decryption_algorithm_name(decryption_flag: int) -> str:
 
     return decryption_algorithms.get(decryption_flag, None)
 
+def get_decompression_algorithm_name(zflag=0):
+    match zflag:
+        case 0:
+            return "NONE"
+        case 1:
+            return "ZLIB"
+        case 2:
+            return "LZ4"
+        case 3:
+            return "ZSTANDARD"
+        case 5:
+            return "ZSTANDARD - NOT WORKING??"
+    raise Exception("ERROR IN DECOMPRESSON ALGORITHM")
+
+
 # Return name of compression type based on file"s header
-def get_compression_type(data: bytes) -> str:
+def parse_compression_type(data: bytes) -> str:
     if not data:
         return None
 
