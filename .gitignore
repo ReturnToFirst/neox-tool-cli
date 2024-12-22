@@ -4,3 +4,4 @@ res
 .venv
 test
 *.log
+*.npk
