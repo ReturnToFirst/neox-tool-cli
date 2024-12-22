@@ -1,6 +1,9 @@
-import shutil
-import os, struct, tempfile, argparse, zipfile
-import time
+import os
+import struct
+import tempfile
+import argparse
+import zipfile
+
 from decompression import zflag_decompress, special_decompress, decompression_algorithm
 from decryption import file_decrypt, decryption_algorithm
 from detection import get_ext, get_compression
@@ -328,21 +331,20 @@ def unpack(args, statusBar=None):
 
 #defines the parser arguments
 def get_parser():
-    parser = argparse.ArgumentParser(description='NXPK/EXPK Extractor made by MarcosVLl2 (@marcosvll2 on Discord or on GitHub https://github.com/MarcosVLl2/neox_tools)', add_help=False)
-    parser.add_argument('-v', '--version', action='version', version='NXPK/EXPK Extractor  ---  Version: 1.9 --- Fixed CRC and other issues + added credits! (I kind of forgot what else)')
+    parser = argparse.ArgumentParser()
     parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('-p', '--path', help="Specify the path of the file or directory, if not specified will do all the files in the current directory",type=str)
+    parser.add_argument('-i', '--input', help="Specify the path of the file or directory, if not specified will do all the files in the current directory",type=str)
+    parser.add_argument('-o', '--output', help="Specify the path of the file or directory, if not specified will do all the files in the current directory",type=str)
     parser.add_argument('-d', '--delete-compressed', action="store_true",help="Delete compressed files (such as ZStandard or ZIP files) after decompression")
     parser.add_argument('-i', '--info', help="Print information about the npk file(s) 1 to 5 for least to most verbose",type=int)
     parser.add_argument('-k', '--key', help="Select the key to use in the CRC128 hash algorithm (check the keys.txt for information)",type=int)
-    parser.add_argument('--credits', help="Shows credits and acknowledgements from people who helped me develop this!!", action="store_true")
-    parser.add_argument('--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
-    parser.add_argument('--selectfile', help="Only do the file selected", type=int)
+    parser.add_argument('-f', '--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
+    parser.add_argument('-s', '--selected-file', help="Only do the file selected", type=int)
     parser.add_argument('--nxfn-file', action="store_true",help="Writes a text file with the NXFN dump output (if applicable)")
-    parser.add_argument('--no-nxfn',action="store_true",help="Disables NXFN file structure")
-    parser.add_argument('--convert-images', help="Automatically converts KTX, PVR and ASTC to PNG files (WARNING, SUPER SLOW)",action="store_true")
-    parser.add_argument('--include-empty', help="Prints empty files", action="store_false")
-    parser.add_argument('--do-one', action='store_true', help='Only do the first file (TESTING PURPOSES)')
+    parser.add_argument('--no-nxfn',action="store_true", help="Disables NXFN file structure")
+    parser.add_argument('-c', '--convert-images', help="Automatically converts KTX, PVR and ASTC to PNG files (WARNING, SUPER SLOW)",action="store_true")
+    parser.add_argument('-e', '--include-empty', help="Prints empty files", action="store_false")
+    parser.add_argument('-t', '--test', action='store_true', help='Export only one file from .npk file(s) for test')
     opt = parser.parse_args()
     return opt
 
@@ -350,21 +352,8 @@ def get_parser():
 def main():
     #defines the parser argument
     opt = get_parser()
-
-    # credits screen
-    if opt.credits:
-        print("\nThank you to everyone who helped me develop this tool and to all of the effort from other tool creators.\n")
-        print("zhouhang95:    https://github.com/zhouhang95/neox_tools")  
-        print("hax0r313373:   https://github.com/hax0r31337/denpk2")
-        print("xforce:        https://github.com/xforce/neox-tools")
-        print("yuanbi:        https://github.com/yuanbi/NeteaseUnpackTools\n")
-        print("Also a big thank you to everyone in the unofficial Discord (https://discord.gg/eedXVqzmfn) who is helping me with reporting errors and new NPK files to detect!\n")
-        print("Special thanks to: aocosmic, victornewspaper, danisis397, yumpyyingzi and _kingjulz")
-        print("Please join the server above to help out!!\n")
-    else:
-
-        #runs the unpack script with the given arguments
-        unpack(opt)
+    #runs the unpack script with the given arguments
+    unpack(opt)
 
 #entry point if ran as a standalone
 if __name__ == '__main__':
