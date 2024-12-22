@@ -34,10 +34,10 @@ def nxs_unpack(data):
     data_in = ctypes.create_string_buffer(data[20:])
 
     if os.name == "posix":
-        liblinux = ctypes.CDLL("./dll/libpubdecrypt.so")
+        liblinux = ctypes.CDLL("./libs/libpubdecrypt.so")
         returning = liblinux.public_decrypt(data_in, wrapped_key)
     elif os.name == "nt":
-        libwindows = ctypes.CDLL("./dll/libpubdecrypt.dll")
+        libwindows = ctypes.CDLL("./libs/libpubdecrypt.dll")
         returning = libwindows.public_decrypt(data_in, wrapped_key)
 
 
