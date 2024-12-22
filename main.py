@@ -324,21 +324,24 @@ def unpack(args, statusBar=None):
 # defines the parser arguments
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', help="Specify the output of the file or directory, if not specified will do all the files in the current directory", type=str)
+
+    parser.add_argument('-i', '--input', help="Specify the input of the file or directory, if not specified will do all the files in the current directory", type=str)
     parser.add_argument('-o', '--output', help="Specify the output of the file or directory, if not specified will do all the files in the current directory", type=str)
-    parser.add_argument('-d', '--delete-compressed', action="store_true",help="Delete compressed files (such as ZStandard or ZIP files) after decompression")
-    parser.add_argument('-v', '--verbose', help="Print verbosermation about the npk file(s) 1 to 5 for least to most verbose",type=int)
     parser.add_argument('-x', '--xor-key-file', help="key file for xor decryption", default='neox_xor.key', type=str)
     parser.add_argument('-k', '--key', help="Select the key to use in the CRC128 hash algorithm (check the keys.txt for verbosermation)",type=int)
-    parser.add_argument('-f', '--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
-    parser.add_argument('-s', '--selected-file', help="Decompress Only file selected", action="store_true")
+
+    parser.add_argument('-c', '--delete-compressed', action="store_true",help="Delete compressed files (such as ZStandard or ZIP files) after decompression")
+    parser.add_argument('-m', '--merge-folder', help="Merge dumped files to output folder")
     parser.add_argument('--nxfn-file', action="store_true",help="Writes a text file with the NXFN dump output (if applicable)")
+
+    parser.add_argument('-f', '--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
     parser.add_argument('--no-nxfn',action="store_true", help="Disables NXFN file structure")
-    parser.add_argument('--convert-images', help="Automatically converts KTX, PVR and ASTC to PNG files (WARNING, SUPER SLOW)",action="store_true")
-    parser.add_argument('--include-empty', help="Prints empty files", action="store_false")
-    parser.add_argument('-t', '--test', action='store_true', help='Export only one file from .npk file(s) for test')
-    opt = parser.parse_args()
-    return opt
+
+    parser.add_argument('-v', '--verbose', help="Print verbosermation about the npk file(s) 1 to 5 for least to most verbose",type=int)
+    parser.add_argument('-t', '--test', help='Export only one file from .npk file(s) for test', action='store_true')  
+    parser.add_argument('-a', '--analyse', help='Analyse npk file(s) struct and save to file.')
+
+    return parser.parse_args()
 
 #entry point if ran as a standalone
 if __name__ == '__main__':
