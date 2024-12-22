@@ -1,4 +1,46 @@
 import io
+from dataclasses import dataclass
+from utils import readuint16, readuint32, readuint64, readuint8
+from pathlib import Path
+
+
+@dataclass
+class NPKIndex:
+    file_name: str
+    file_offset: int
+    file_length: int
+    file_original_length: int
+    crc_compressed: int
+    crc_original: int
+    compression_flag: int
+    encryption_flag: int
+
+
+@dataclass
+class NPKFile:
+    file_path: Path
+    file_reader: io.BufferedReader
+    file_type: str
+    file_count: int
+    encryption_flag: int
+    use_nxfn: bool
+    hashing_mode: int
+    index_offset: int
+    index: list[NPKIndex]
+
+    def __post_init__(self, f: io.BufferedReader):
+        self.file_type = self.get_file_type(f)
+
+    def get_file_type(self, f: io.BufferedReader):
+        f.seek(0)
+        type_hex = hex(readuint32(f))[2:]  # Remove the '0x' prefix
+        type_bytes = bytes.fromhex(type_hex)[::-1]
+        return type_bytes.decode()
+
+    def get_file_count(self, f: io.BufferedReader):
+        f.seek(4)
+        self.file_count = readuint32(f)
+
 
 # Determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data )
 def get_info_size(f:io.BufferedReader, hash_mode: int, encrypt_mode:int , index_offset:int , files_count: int):
