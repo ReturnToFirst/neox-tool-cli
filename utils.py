@@ -127,7 +127,9 @@ def parse_extension(data):
             return "fev"
         elif b"WAVE" in data:
             return "wem"
-    
+        
+    return parse_neoxml_type(data)
+
 def parse_neoxml_type(data: bytes) -> str:
     neo_xml_map = {
         b"<Material": "mtl",
