@@ -1,48 +1,45 @@
-class newrotor(object):
+from typing import List, Tuple
 
-    #starts the rotor
-    def __init__(self, key, n_rotors=6):
-        self.n_rotors = n_rotors
-        self.setkey(key)
+class Rotor:
+    def __init__(self, key: str, n_rotors: int = 6) -> None:
+        self.n_rotors: int = n_rotors
+        self.set_key(key)
 
-    #sets the key for the rotor algorithm
-    def setkey(self, key):
-        self.key = key
+    def set_key(self, key: str) -> None:
+        self.key: str = key
         self.rotors = None
-        self.positions = [None, None]
+        self.positions: List[int | None] = [None, None]
 
-    #encrypts the buffer
-    def encrypt(self, buf):
+    def encrypt(self, buf: bytes) -> bytes:
         self.positions[0] = None
-        return self.cryptmore(buf, 0)
+        return self._crypt(buf, do_decrypt=False)
 
-    #decrypts the buffer
-    def decrypt(self, buf):
+    def decrypt(self, buf: bytes) -> bytes:
         self.positions[1] = None
-        return self.cryptmore(buf, 1)
+        return self._crypt(buf, do_decrypt=True)
 
-    #def for the encryption / decryption
-    def cryptmore(self, buf, do_decrypt):
-        size, nr, rotors, pos = self.get_rotors(do_decrypt)
-        outbuf = b''
-        for c in buf:
-            if do_decrypt:
-                for i in range(nr-1,-1,-1):
-                    c = pos[i] ^ rotors[i][c]
-            else:
-                for i in range(nr):
-                    c = rotors[i][c ^ pos[i]]
-            outbuf = outbuf + c.to_bytes(1, "big")
+    def _crypt(self, buf: bytes, do_decrypt: bool) -> bytes:
+        size, nr, rotors, pos = self._get_rotors(do_decrypt)
+        outbuf = bytearray(len(buf))  # Using bytearray for in-place modification
 
-            pnew = 0
-            for i in range(nr):
-                pnew = ((pos[i] + (pnew >= size)) & 0xff) + rotors[i][size]
-                pos[i] = pnew % size
+        # Use a single loop for both encrypt and decrypt operations
+        for i, c in enumerate(buf):
+            for rotor, p in zip(reversed(rotors), reversed(pos)) if do_decrypt else zip(rotors, pos):
+                c = p ^ rotor[c] if do_decrypt else rotor[c ^ p]
+            outbuf[i] = c
 
-        return outbuf
+        # Update rotor positions
+        self._update_rotor_positions(nr, pos, rotors, size)
 
-    #gets the rotors position for the encryption / decryption
-    def get_rotors(self, do_decrypt):
+        return bytes(outbuf)  # Convert bytearray back to bytes before returning
+
+    def _update_rotor_positions(self, nr: int, pos: List[int], rotors: Tuple[Tuple[int]], size: int) -> None:
+        pnew = 0
+        for i in range(nr):
+            pnew = ((pos[i] + (pnew >= size)) & 0xff) + rotors[i][size]
+            pos[i] = pnew % size
+
+    def _get_rotors(self, do_decrypt: bool) -> Tuple[int, int, Tuple[int], List[int]]:
         nr = self.n_rotors
         rotors = self.rotors
         positions = self.positions[do_decrypt]
@@ -51,63 +48,56 @@ class newrotor(object):
             if rotors:
                 positions = list(rotors[3])
             else:
-                self.size = size = 256
-                id_rotor = list(range(size+1))
-
+                size = 256
+                id_rotor = list(range(size + 1))
                 rand = random_func(self.key)
-                E = []
-                D = []
-                positions = []
-                for i in range(nr):
+
+                E, D, positions = []
+                for _ in range(nr):
                     i = size
                     positions.append(rand(i))
-                    erotor = id_rotor[:]
-                    drotor = id_rotor[:]
-                    drotor[i] = erotor[i] = 1 + 2*rand(i/2) # increment
+                    erotor, drotor = id_rotor[:], id_rotor[:]
+                    drotor[i] = erotor[i] = 1 + 2 * rand(i // 2)
+
                     while i > 1:
                         r = rand(i)
                         i -= 1
-                        er = erotor[r]
-                        erotor[r] = erotor[i]
-                        erotor[i] = er
-                        drotor[er] = i
-                    drotor[erotor[0]] = 0
+                        erotor[r], erotor[i] = erotor[i], erotor[r]
+                        drotor[erotor[0]] = 0
+
                     E.append(tuple(erotor))
                     D.append(tuple(drotor))
-                self.rotors = rotors = (
-                    tuple(E), tuple(D), size, tuple(positions))
+
+                self.rotors = rotors = (tuple(E), tuple(D), size, tuple(positions))
             self.positions[do_decrypt] = positions
         return rotors[2], nr, rotors[do_decrypt], positions
-
-#pseudorandom full algorithm with a key
-def random_func(key):
+    
+def random_func(key: str):
+    # Initialize the state variables
+    x, y, z = 995, 576, 767
     mask = 0xffff
-    x=995
-    y=576
-    z=767
+
+    # Use the key to initialize the random state
     for c in map(ord, key):
-        x = (((x<<3 | x>>13) + c) & mask)
-        y = (((y<<3 | y>>13) ^ c) & mask)
-        z = (((z<<3 | z>>13) - c) & mask)
+        x = ((x << 3) | (x >> 13) + c) & mask
+        y = ((y << 3) | (y >> 13) ^ c) & mask
+        z = ((z << 3) | (z >> 13) - c) & mask
 
-    maxpos = mask >> 1
-    mask += 1
-    if x > maxpos: x -= mask
-    if y > maxpos: y -= mask
-    if z > maxpos: z -= mask
-
+    # Ensure y is odd
     y |= 1
 
-    x = 171 * (int(x) % 177) - 2  * (int(x)//177)
-    y = 172 * (int(y) % 176) - 35 * (int(y)//176)
-    z = 170 * (int(z) % 178) - 63 * (int(z)//178)
-    if x < 0: x += 30269
-    if y < 0: y += 30307
-    if z < 0: z += 30323
+    # Perform modular arithmetic on x, y, z
+    x = (171 * (x % 177) - 2 * (x // 177)) % 30269
+    y = (172 * (y % 176) - 35 * (y // 176)) % 30307
+    z = (170 * (z % 178) - 63 * (z // 178)) % 30323
 
-    #pseudorandom algorithm with an X Y Z seed
-    def rand(n, seed=[(x, y, z)]):
-        x, y, z = seed[0]
-        seed[0] = ((171*x) % 30269, (172*y) % 30307, (170*z) % 30323)
-        return int(int((x/30269 + y/30307 + z/30323) * n) % n)
+    # Function to generate a pseudo-random number
+    def rand(n: int) -> int:
+        nonlocal x, y, z
+        x = (171 * x) % 30269
+        y = (172 * y) % 30307
+        z = (170 * z) % 30323
+        # Return a value within the range [0, n)
+        return int(((x / 30269 + y / 30307 + z / 30323) * n) % n)
+
     return rand
