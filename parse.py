@@ -18,28 +18,46 @@ class NPKIndex:
 
 @dataclass
 class NPKFile:
-    file_path: Path
-    file_reader: io.BufferedReader
-    file_type: str
+    path: Path
+    reader: io.BufferedReader
+    type: str
     file_count: int
     encryption_flag: int
     use_nxfn: bool
     hashing_mode: int
-    index_offset: int
+    index_start_offset: int
     index: list[NPKIndex]
 
-    def __post_init__(self, f: io.BufferedReader):
-        self.file_type = self.get_file_type(f)
+    def __post_init__(self, file_path: Path):
+        self.reader = open(file_path, "rb")
 
-    def get_file_type(self, f: io.BufferedReader):
-        f.seek(0)
-        type_hex = hex(readuint32(f))[2:]  # Remove the '0x' prefix
-        type_bytes = bytes.fromhex(type_hex)[::-1]
-        return type_bytes.decode()
+        self.type = self.get_type()
+        self.file_count = self.get_file_count()
+        self.encryption_flag = self.get_encrypthion_flag()
+        self.use_nxfn = True if self.encryption_flag == "256" else False
+        self.hashing_mode = self.get_hashing_mode()
+        self.index_start_offset = self.get_index_start_offset()
 
-    def get_file_count(self, f: io.BufferedReader):
-        f.seek(4)
-        self.file_count = readuint32(f)
+    def get_type(self):
+        self.reader.seek(0)
+        type_hex = hex(readuint32(self.reader))[2:]  # Remove the '0x' prefix
+        return bytes.fromhex(type_hex)[::-1].decode()
+
+    def get_file_count(self):
+        self.reader.seek(4)
+        return readuint32(self.reader)
+
+    def get_encrypthion_flag(self):
+        self.reader.seek(12)
+        return readuint16(self.reader)
+
+    def get_hashing_mode(self):
+        self.reader.seek(16)
+        return readuint16(self.reader)
+    
+    def get_index_start_offset(self):
+        self.reader.seek(20)
+        return readuint32(self.reader)
 
 
 # Determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data )
