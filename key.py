@@ -1,14 +1,12 @@
-from copy import copy
+from pathlib import Path
 
 class XORDecryptor:
+    def __init__(self, key_path: Path):
+        with open(key_path, "rb") as key_reader:
+            self.xor_key = key_reader.read()
 
-    #inits the key
-    def __init__(self, key_path):
-        with open(key_path, "rb") as kr:
-            self.xor_key = kr.read()
-
-    #generates the key with a length of X numbers
-    def generate_keys(self, length):
+    # KSA(The Key-scheduling Algorithm)
+    def generate_keys(self, length: int) -> bytearray:
         key_data = self.xor_key[:]  # Copy key state
         i, j = 0
         key = bytearray(length)  # Use bytearray for faster appends and memory efficiency
@@ -25,7 +23,7 @@ class XORDecryptor:
         
         return key
 
-    #decrypts with the key
-    def decrypt(self, data):
+    # Decrypts data with key using XOR
+    def decrypt(self, data) -> bytearray:
         return [data ^ self.generate_keys(len(data))]
     
