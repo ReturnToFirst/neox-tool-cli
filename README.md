@@ -1,7 +1,5 @@
 # NeoX NPK Extractor
 
-![Screenshot](https://github.com/user-attachments/assets/0d742699-4269-497c-95bf-ab2c1c3b1460)
-
 File extractor for NeoX Engine .npk files.
 
 # Setup
