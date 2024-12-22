@@ -1,0 +1,9 @@
+numpy
+transformations
+pymeshio
+tqdm
+pyqt5
+moderngl
+pyrr
+zstandard
+lz4
