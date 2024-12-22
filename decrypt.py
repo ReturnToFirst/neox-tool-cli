@@ -25,7 +25,7 @@ class XORDecryptor:
 
     # Decrypts data with key using XOR
     def decrypt(self, data: bytearray) -> bytearray:
-        return [data ^ self.generate_keys(len(data))]
+        return data ^ self.generate_keys(len(data))
     
 # Decrypt file with file's encryption type flag
 def file_decrypt(flag, data, key=None, crc=0, file_length=0, file_original_length=0):
