@@ -36,7 +36,7 @@ options:
 ```
 
 # Disclaimer
-This project is intended solely for research and educational purposes. It is a reverse engineering framework designed to explore and understand software systems. The use of this framework for any illegal or unauthorized activity, including but not limited to the unauthorized access, alteration, or distribution of software or data, is strictly prohibited.
+This project is intended for research and educational purposes. It is a reverse engineering framework designed to explore and understand software systems. The use of this framework for any illegal or unauthorized activity, including but not limited to the unauthorized access, alteration, or distribution of software or data, is strictly prohibited.
 
 By using this framework, you acknowledge that you are fully responsible for ensuring that your actions comply with all relevant legal, ethical, and regulatory requirements, including international laws if applicable, within the laws of your region.
 
