@@ -79,18 +79,18 @@ def print_data(verblevel, minimumlevel, text, data, typeofdata, pointer=0):
 #main code
 def unpack(args, statusBar=None):
     allfiles = []
-    if args.selectfile:
-        args.selectfile = args.selectfile - 1
-    if args.info == None:
-        args.info = 0
+    if args.selected_file:
+        args.selected_file = args.selected_file - 1
+    if args.verbose == None:
+        args.verbose = 0
     try:
         #determines the files which the reader will have to operate on
-        if args.path == None:
-            allfiles = ["./" + x for x in os.listdir(args.path) if x.endswith(".npk")]
-        elif os.path.isdir(args.path):
-            allfiles = [args.path + "/" + x for x in os.listdir(args.path) if x.endswith(".npk")]
+        if args.input == None:
+            allfiles = ["./" + x for x in os.listdir(args.input) if x.endswith(".npk")]
+        elif os.path.isdir(args.input):
+            allfiles = [args.input + "/" + x for x in os.listdir(args.input) if x.endswith(".npk")]
         else:
-            allfiles.append(args.path)
+            allfiles.append(args.input)
     except TypeError as e:
         print("NPK files not found")
     if not allfiles:
@@ -100,21 +100,21 @@ def unpack(args, statusBar=None):
     keys = Keys()
 
     #goes through every file
-    for path in allfiles:
+    for output in allfiles:
         
         #starts timer for the time taken
         start = timer()
         
-        #sets the final destination path
-        print("UNPACKING: {}".format(path))
-        folder_path = path[:-4]
+        #sets the final destination output
+        print("UNPACKING: {}".format(output))
+        folder_output = output[:-4]
         
         #makes the folder where the files will be dumped
-        if not os.path.exists(folder_path):
-            os.mkdir(folder_path)
+        if not os.path.exists(folder_output):
+            os.mkdir(folder_output)
             
         #opens the file
-        with open(path, 'rb') as f:
+        with open(output, 'rb') as f:
             
             #this is the only thing that the force command does, doesnt read the bytes corresponding the NXPK / EXPK header
             if not args.force:
@@ -126,32 +126,32 @@ def unpack(args, statusBar=None):
                     pkg_type = 1
                 else:
                     raise Exception('NOT NXPK/EXPK FILE')
-                print_data(args.info, 1,"FILE TYPE:", data, "NXPK", f.tell())
+                print_data(args.verbose, 1,"FILE TYPE:", data, "NXPK", f.tell())
             
             #amount of files
             files = readuint32(f)
-            print_data(args.info, 1,"FILES:", files, "NXPK", f.tell())
+            print_data(args.verbose, 1,"FILES:", files, "NXPK", f.tell())
             print("")
             
             #var1, its always set to 0
             var1 = readuint32(f)
-            print_data(args.info, 5,"UNKNOWN:", var1, "NXPK_DATA", f.tell())
+            print_data(args.verbose, 5,"UNKNOWN:", var1, "NXPK_DATA", f.tell())
             
             #determines what i call "encryption mode", its 256 when theres NXFN file data at the end
             encryption_mode = readuint32(f)
-            print_data(args.info, 2,"ENCRYPTMODE:", encryption_mode, "NXPK_DATA", f.tell())
+            print_data(args.verbose, 2,"ENCRYPTMODE:", encryption_mode, "NXPK_DATA", f.tell())
             
             #determines what i call "hash mode", it can be 0, 1, 2, and 3, 0 and 1 are fine, 3 is not supported (i think) and 2 is unknown
             hash_mode = readuint32(f)
-            print_data(args.info, 2,"HASHMODE:", hash_mode, "NXPK_DATA", f.tell())
+            print_data(args.verbose, 2,"HASHMODE:", hash_mode, "NXPK_DATA", f.tell())
             
             #offset where the index starts
             index_offset = readuint32(f)
-            print_data(args.info, 2,"INDEXOFFSET:", index_offset, "NXPK_DATA", f.tell())
+            print_data(args.verbose, 2,"INDEXOFFSET:", index_offset, "NXPK_DATA", f.tell())
 
-            #determines the "info_size" aka the size of each file offset data, it can be 28 or 32 bytes
+            #determines the "verbose_size" aka the size of each file offset data, it can be 28 or 32 bytes
             info_size = determine_info_size(f, var1, hash_mode, encryption_mode, index_offset, files)
-            print_data(args.info, 3, "INDEXSIZE", info_size, "NXPK_DATA", 0)
+            print_data(args.verbose, 3, "INDEXSIZE", info_size, "NXPK_DATA", 0)
             print("")
 
             index_table = []
@@ -166,7 +166,7 @@ def unpack(args, statusBar=None):
                 
             #checks for the encryption mode and does the NXFN shienanigans
             if encryption_mode == 256 and args.nxfn_file:
-                with open(folder_path+"/NXFN_result.txt", "w") as nxfn:
+                with open(folder_output+"/NXFN_result.txt", "w") as nxfn:
                     #data reader goes to where the NXFN file starts, it starts with b"NXFN" + 12 bytes (unknown for now)
                     f.seek(index_offset + (files * info_size) + 16)
                     
@@ -201,8 +201,8 @@ def unpack(args, statusBar=None):
                 #goes to the start of the file
                 tmp.seek(0)
                 
-                #checks if its only supposed to read one file, then it reads the data and adds it to a list as touples with the info itself
-                if args.do_one:
+                #checks if its only supposed to read one file, then it reads the data and adds it to a list as touples with the verbose itself
+                if args.test:
                     index_table.append(read_index(tmp, info_size, 0, nxfn_files, index_offset))
                 else:
                     for x in range(files):
@@ -213,27 +213,27 @@ def unpack(args, statusBar=None):
 
             #goes through every index in the index table
             for i, item in enumerate(index_table):
-                if args.selectfile and (i != args.selectfile):
+                if args.selected_file and (i != args.selected_file):
                     continue
                 ext = None
                 data2 = None
                 
                 #checks if it should print the progression text
-                if ((i % step == 0 or i + 1 == files) and args.info <= 2 and args.info != 0) or args.info > 2:
+                if ((i % step == 0 or i + 1 == files) and args.verbose <= 2 and args.verbose != 0) or args.verbose > 2:
                     print('FILE: {}/{}  ({}%)\n'.format(i + 1, files, ((i + 1) / files) * 100))
                     
                 #unpacks the index
                 file_sign, file_offset, file_length, file_original_length, zcrc, crc, file_structure, zflag, file_flag = item
                 
                 #prints the index data
-                print_data(args.info, 4,"FILESIGN:", hex(file_sign[0]), "VERBOSE_FILE", file_sign[1])
-                print_data(args.info, 3,"FILEOFFSET:", file_offset, "FILE", file_sign[1] + 4)
-                print_data(args.info, 3,"FILELENGTH:", file_length, "FILE", file_sign[1] + 8)
-                print_data(args.info, 4,"FILEORIGLENGTH:", file_original_length, "VERBOSE_FILE", file_sign[1] + 12)
-                print_data(args.info, 4,"ZIPCRCFLAG:", zcrc, "VERBOSE_FILE", file_sign[1] + 16)
-                print_data(args.info, 4,"CRCFLAG:", crc, "VERBOSE_FILE", file_sign[1] + 20)
-                print_data(args.info, 3,"ZFLAG:", zflag, "VERBOSE_FILE", file_sign[1] + 22)
-                print_data(args.info, 3,"FILEFLAG:", file_flag, "VERBOSE_FILE", file_sign[1] + 24)
+                print_data(args.verbose, 4,"FILESIGN:", hex(file_sign[0]), "VERBOSE_FILE", file_sign[1])
+                print_data(args.verbose, 3,"FILEOFFSET:", file_offset, "FILE", file_sign[1] + 4)
+                print_data(args.verbose, 3,"FILELENGTH:", file_length, "FILE", file_sign[1] + 8)
+                print_data(args.verbose, 4,"FILEORIGLENGTH:", file_original_length, "VERBOSE_FILE", file_sign[1] + 12)
+                print_data(args.verbose, 4,"ZIPCRCFLAG:", zcrc, "VERBOSE_FILE", file_sign[1] + 16)
+                print_data(args.verbose, 4,"CRCFLAG:", crc, "VERBOSE_FILE", file_sign[1] + 20)
+                print_data(args.verbose, 3,"ZFLAG:", zflag, "VERBOSE_FILE", file_sign[1] + 22)
+                print_data(args.verbose, 3,"FILEFLAG:", file_flag, "VERBOSE_FILE", file_sign[1] + 24)
                 
                 #goes to the offset where the file is indicated by the index
                 f.seek(file_offset)
@@ -248,35 +248,35 @@ def unpack(args, statusBar=None):
                 #defines the method for the file structure (if it has NXFN structure, if not its 00000000.extension)
                 def check_file_structure():
                     if file_structure and not args.no_nxfn:
-                        file_path = folder_path + "/" + file_structure.decode().replace("\\", "/")
-                        os.makedirs(os.path.dirname(file_path), exist_ok=True)
-                        ext = file_path.split(".")[-1]
+                        file_output = folder_output + "/" + file_structure.decode().replace("\\", "/")
+                        os.makedirs(os.path.dirname(file_output), exist_ok=True)
+                        ext = file_output.split(".")[-1]
                     else:
-                        file_path = folder_path + '/{:08}.'.format(i)
-                    return file_path
+                        file_output = folder_output + '/{:08}.'.format(i)
+                    return file_output
 
                 #gets the file structure
-                file_path = check_file_structure()
+                file_output = check_file_structure()
 
                 #if its an EXPK file,it decrypts the data
                 if pkg_type:
                     data = keys.decrypt(data)
                     
                 #prints out the decryption algorithm type    
-                print_data(args.info, 5,"DECRYPTION:", decryption_algorithm(file_flag), "FILE", file_offset)
+                print_data(args.verbose, 5,"DECRYPTION:", decryption_algorithm(file_flag), "FILE", file_offset)
 
                 #does the decryption
                 data = file_decrypt(file_flag, data, args.key, crc, file_length, file_original_length)
 
                 #prints out the compression type
-                print_data(args.info, 5,"COMPRESSION0:", decompression_algorithm(zflag), "FILE", file_offset)
+                print_data(args.verbose, 5,"COMPRESSION0:", decompression_algorithm(zflag), "FILE", file_offset)
 
                 #does the decompression
                 data = zflag_decompress(zflag, data, file_original_length)
                     
                 #gets the compression type and prints it
                 compression = get_compression(data)
-                print_data(args.info, 4,"COMPRESSION1:", compression.upper(), "FILE", file_offset)
+                print_data(args.verbose, 4,"COMPRESSION1:", compression.upper(), "FILE", file_offset)
 
                 #does the special decompresison type (NXS and ROTOR)
                 data = special_decompress(compression, data)
@@ -285,20 +285,20 @@ def unpack(args, statusBar=None):
                 if compression == 'zip':
                     
                     #checks the file structure for zip files
-                    file_path = check_file_structure() + "zip"
-                    print_data(args.info, 5,"FILENAME_ZIP:", file_path, "FILE", file_offset)
+                    file_output = check_file_structure() + "zip"
+                    print_data(args.verbose, 5,"FILENAME_ZIP:", file_output, "FILE", file_offset)
                     
                     #writes the zip file data
-                    with open(file_path, 'wb') as dat:
+                    with open(file_output, 'wb') as dat:
                         dat.write(data)
                         
                     #extracts the zip file
-                    with zipfile.ZipFile(file_path, 'r') as zip:
-                        zip.extractall(file_path[0:-4])
+                    with zipfile.ZipFile(file_output, 'r') as zip:
+                        zip.extractall(file_output[0:-4])
                         
                     #deletes the zip file 
                     if args.delete_compressed:
-                        os.remove(file_path)
+                        os.remove(file_output)
                         
                     #skips the rest of the code and goes on with the next index
                     continue
@@ -307,20 +307,20 @@ def unpack(args, statusBar=None):
 
                 if not file_structure:
                     ext = get_ext(data)
-                    file_path += ext
+                    file_output += ext
                 
-                print_data(args.info, 3,"FILENAME:", file_path, "FILE", file_offset)
+                print_data(args.verbose, 3,"FILENAME:", file_output, "FILE", file_offset)
                 
                 #writes the data
-                with open(file_path, 'wb') as dat:
+                with open(file_output, 'wb') as dat:
                     dat.write(data)
                     
                 #converts KTX, PVR and ASTC to PNGs if the flag "convert_images" is set
                 if (ext == "ktx" or ext == "pvr" or ext == "astc") and args.convert_images:
                     if os.name == "posix":
-                        os.system('./dll/PVRTexToolCLI -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_path, file_path[:-len(ext)]))
+                        os.system('./dll/PVRTexToolCLI -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
                     elif os.name == "nt":
-                        os.system('.\dll\PVRTexToolCLI.exe -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_path, file_path[:-len(ext)]))
+                        os.system('.\dll\PVRTexToolCLI.exe -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
                         
         #gets the end time
         end = timer()
@@ -332,12 +332,11 @@ def unpack(args, statusBar=None):
 #defines the parser arguments
 def get_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-h', '--help', action='help', default=argparse.SUPPRESS, help='Show this help message and exit')
-    parser.add_argument('-i', '--input', help="Specify the path of the file or directory, if not specified will do all the files in the current directory",type=str)
-    parser.add_argument('-o', '--output', help="Specify the path of the file or directory, if not specified will do all the files in the current directory",type=str)
+    parser.add_argument('-i', '--input', help="Specify the output of the file or directory, if not specified will do all the files in the current directory",type=str)
+    parser.add_argument('-o', '--output', help="Specify the output of the file or directory, if not specified will do all the files in the current directory",type=str)
     parser.add_argument('-d', '--delete-compressed', action="store_true",help="Delete compressed files (such as ZStandard or ZIP files) after decompression")
-    parser.add_argument('-i', '--info', help="Print information about the npk file(s) 1 to 5 for least to most verbose",type=int)
-    parser.add_argument('-k', '--key', help="Select the key to use in the CRC128 hash algorithm (check the keys.txt for information)",type=int)
+    parser.add_argument('-v', '--verbose', help="Print verbosermation about the npk file(s) 1 to 5 for least to most verbose",type=int)
+    parser.add_argument('-k', '--key', help="Select the key to use in the CRC128 hash algorithm (check the keys.txt for verbosermation)",type=int)
     parser.add_argument('-f', '--force', help="Forces the NPK file to be extracted by ignoring the header",action="store_true")
     parser.add_argument('-s', '--selected-file', help="Only do the file selected", type=int)
     parser.add_argument('--nxfn-file', action="store_true",help="Writes a text file with the NXFN dump output (if applicable)")
@@ -348,13 +347,9 @@ def get_parser():
     opt = parser.parse_args()
     return opt
 
-#main entry point
-def main():
+#entry point if ran as a standalone
+if __name__ == '__main__':
     #defines the parser argument
     opt = get_parser()
     #runs the unpack script with the given arguments
     unpack(opt)
-
-#entry point if ran as a standalone
-if __name__ == '__main__':
-    main()
