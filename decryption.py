@@ -1,20 +1,5 @@
-#returns the type of decryption algorithm based on the file_flag index parameter
-def decryption_algorithm(flag):
-    match flag:
-        case 0:
-            return "NONE"
-        case 1:
-            return "XOR_128"
-        case 2:
-            return "XOR_32_127_TYPE1"
-        case 3:
-            return "XOR_32_127_TYPE2"
-        case 4:
-            return "XOR_32_127_TYPE3"
-    raise Exception("ERROR IN DECRYPTION ALGORITHM: VALUE {}".format(flag))
-
-#does the decryption algorithm
-def file_decrypt(flag, data, key=None,crc=0,file_length=0,file_original_length=0):
+# Decrypt file with file's encryption type flag
+def file_decrypt(flag, data, key=None, crc=0, file_length=0, file_original_length=0):
     match flag:
         case 1:
             if key == None:

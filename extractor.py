@@ -5,8 +5,8 @@ import argparse
 import zipfile
 
 from decompression import zflag_decompress, special_decompress, decompression_algorithm
-from decryption import file_decrypt, decryption_algorithm
-from detection import get_ext, get_compression
+from decryption import file_decrypt
+from utils import get_compression_type, get_decryption_algorithm_name, parse_extension
 from key import XORDecryptor
 from timeit import default_timer as timer
 
@@ -226,14 +226,14 @@ def unpack(args, statusBar=None):
                 file_sign, file_offset, file_length, file_original_length, zcrc, crc, file_structure, zflag, file_flag = item
                 
                 #prints the index data
-                print_data(args.verbose, 4,"FILESIGN:", hex(file_sign[0]), "VERBOSE_FILE", file_sign[1])
+                print_data(args.verbose, 4,"FILESIGN:", hex(file_sign[0]), "INFO_FILE", file_sign[1])
                 print_data(args.verbose, 3,"FILEOFFSET:", file_offset, "FILE", file_sign[1] + 4)
                 print_data(args.verbose, 3,"FILELENGTH:", file_length, "FILE", file_sign[1] + 8)
-                print_data(args.verbose, 4,"FILEORIGLENGTH:", file_original_length, "VERBOSE_FILE", file_sign[1] + 12)
-                print_data(args.verbose, 4,"ZIPCRCFLAG:", zcrc, "VERBOSE_FILE", file_sign[1] + 16)
-                print_data(args.verbose, 4,"CRCFLAG:", crc, "VERBOSE_FILE", file_sign[1] + 20)
-                print_data(args.verbose, 3,"ZFLAG:", zflag, "VERBOSE_FILE", file_sign[1] + 22)
-                print_data(args.verbose, 3,"FILEFLAG:", file_flag, "VERBOSE_FILE", file_sign[1] + 24)
+                print_data(args.verbose, 4,"FILEORIGLENGTH:", file_original_length, "INFO_FILE", file_sign[1] + 12)
+                print_data(args.verbose, 4,"ZIPCRCFLAG:", zcrc, "INFO_FILE", file_sign[1] + 16)
+                print_data(args.verbose, 4,"CRCFLAG:", crc, "INFO_FILE", file_sign[1] + 20)
+                print_data(args.verbose, 3,"ZFLAG:", zflag, "INFO_FILE", file_sign[1] + 22)
+                print_data(args.verbose, 3,"FILEFLAG:", file_flag, "INFO_FILE", file_sign[1] + 24)
                 
                 #goes to the offset where the file is indicated by the index
                 f.seek(file_offset)
@@ -263,20 +263,20 @@ def unpack(args, statusBar=None):
                     data = xor_decryptor.decrypt(data)
                     
                 #prints out the decryption algorithm type    
-                print_data(args.verbose, 5,"DECRYPTION:", decryption_algorithm(file_flag), "FILE", file_offset)
+                print_data(args.verbose, 5,"DECRYPTION:", get_decryption_algorithm_name(file_flag), "FILE", file_offset)
 
                 #does the decryption
                 data = file_decrypt(file_flag, data, args.key, crc, file_length, file_original_length)
 
                 #prints out the compression type
-                print_data(args.verbose, 5,"COMPRESSION0:", decompression_algorithm(zflag), "FILE", file_offset)
+                print_data(args.verbose, 5,"COMPRESSION:", get_decryption_algorithm_name(zflag), "FILE", file_offset)
 
                 #does the decompression
                 data = zflag_decompress(zflag, data, file_original_length)
                     
                 #gets the compression type and prints it
-                compression = get_compression(data)
-                print_data(args.verbose, 4,"COMPRESSION1:", compression.upper(), "FILE", file_offset)
+                compression = get_compression_type(data)
+                print_data(args.verbose, 4,"COMPRESSION1:", compression.upper() if compression != None else "None", "FILE", file_offset)
 
                 #does the special decompresison type (NXS and ROTOR)
                 data = special_decompress(compression, data)
@@ -318,9 +318,9 @@ def unpack(args, statusBar=None):
                 #converts KTX, PVR and ASTC to PNGs if the flag "convert_images" is set
                 if (ext == "ktx" or ext == "pvr" or ext == "astc") and args.convert_images:
                     if os.name == "posix":
-                        os.system('./dll/PVRTexToolCLI -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
+                        os.system('./lib/PVRTexToolCLI -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
                     elif os.name == "nt":
-                        os.system('.\dll\PVRTexToolCLI.exe -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
+                        os.system('.\lib\PVRTexToolCLI.exe -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
                         
         #gets the end time
         end = timer()
