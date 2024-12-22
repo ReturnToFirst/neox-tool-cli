@@ -4,11 +4,9 @@ import tempfile
 import argparse
 import zipfile
 
-from decompress import zflag_decompress, special_decompress
-from decrypt import file_decrypt
-from utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension
-from key import XORDecryptor
-from timeit import default_timer as timer
+from .decompress import zflag_decompress, special_decompress
+from .decrypt import file_decrypt, XORDecryptor
+from .utils import get_decompression_algorithm_name, get_decryption_algorithm_name, parse_compression_type, parse_extension
 
 #determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data 
 def determine_info_size(f, var1, hashmode, encryptmode, index_offset, files):
@@ -101,9 +99,6 @@ def unpack(args, statusBar=None):
 
     #goes through every file
     for output in allfiles:
-        
-        #starts timer for the time taken
-        start = timer()
         
         #sets the final destination output
         print("UNPACKING: {}".format(output))
@@ -321,9 +316,6 @@ def unpack(args, statusBar=None):
                         os.system('./lib/PVRTexToolCLI -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
                     elif os.name == "nt":
                         os.system('.\lib\PVRTexToolCLI.exe -i "{}" -d "{}png" -f r8g8b8a8 -noout'.format(file_output, file_output[:-len(ext)]))
-                        
-        #gets the end time
-        end = timer()
         
         #prints the end time
         print("FINISHED - DECOMPRESSED {} FILES IN {} seconds".format(files, end - start))
