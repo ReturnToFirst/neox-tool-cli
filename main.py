@@ -287,14 +287,17 @@ def get_parser():
     parser.add_argument('-v', '--log-level', help="Print information about the npk file(s) 1 to 5 for least to most info", default=3, type=int)
     parser.add_argument('-l', '--log-file', help="Path to log file", default="export.log", type=str)
     parser.add_argument('-t', '--test', help='Export only one file from .npk file(s) for test', action='store_true')  
-    parser.add_argument('-a', '--analyse', help='Analyse npk file(s) struct and save to file.', action="store_true")
+    parser.add_argument('-a', '--analyse', help='Analyse .npk file(s) struct and save to file.', action="store_true")
 
     return parser.parse_args()
 
 if __name__ == '__main__':
     args = get_parser()
-    logging.basicConfig(filename=args.log_file,
-                        filemode="w",
-                        format="%(asctime)s %(levelname)s (%(funcName)s) : %(message)s",
-                        level=(5-args.log_level)*10)
+    logging.basicConfig(format="%(asctime)s %(levelname)s (%(funcName)s) : %(message)s",
+                        level=(5-args.log_level)*10,
+                        handlers=[
+                            logging.FileHandler(filename=args.log_file, mode="w"),
+                            logging.StreamHandler()
+                        ]
+    )
     unpack(args)
