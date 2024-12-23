@@ -1,31 +1,36 @@
 import io
 import struct
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 @dataclass
 class NPKIndex:
-    file_name: str
-    file_offset: int
-    file_length: int
-    file_original_length: int
-    crc_compressed: int
-    crc_original: int
-    compression_flag: int
-    encryption_flag: int
+    file_name: str = field(init=False) 
+    file_offset: int = field(init=False) 
+    file_length: int = field(init=False) 
+    file_original_length: int = field(init=False) 
+    crc_compressed: int = field(init=False) 
+    crc_original: int = field(init=False) 
+    compression_flag: int = field(init=False) 
+    encryption_flag: int = field(init=False) 
 
-    def __post_init__(self, f:io.BufferedReader, info_size:int, index_offset:int):
+    def __post_init__(self, f, info_size,  nxfn_files=None, index=0):
+        # Determine the file signature size and format
         if info_size == 28:
             sign_format = '<I'
         elif info_size == 32:
             sign_format = '<Q'
 
+        # Read index data all at once
         data_format = f'{sign_format}IIIIHH'
         data_size = struct.calcsize(data_format)
         data = f.read(data_size)
 
+        # Unpack data
         unpacked = struct.unpack(data_format, data)
 
+        # Initialize fields
+        self.file_name = nxfn_files[index] if nxfn_files else None
         self.file_offset = unpacked[1]
         self.file_length = unpacked[2]
         self.file_original_length = unpacked[3]
@@ -36,29 +41,30 @@ class NPKIndex:
 
 @dataclass
 class NPKFile:
-    path: Path
-    reader: io.BufferedReader
-    type: str
-    file_count: int
-    encryption_flag: int
-    use_nxfn: bool
-    hashing_mode: int
-    index_start_offset: int
-    index: list[NPKIndex]
+    file_path: Path
+    reader: io.BufferedReader = field(init=False) 
+    type: str = field(init=False) 
+    file_count: int = field(init=False) 
+    encryption_flag: int = field(init=False) 
+    use_nxfn: bool = field(init=False) 
+    hashing_mode: int = field(init=False) 
+    index_start_offset: int = field(init=False) 
+    index: list[NPKIndex] = field(init=False) 
 
-    def __post_init__(self, file_path: Path):
-        self.reader = open(file_path, "rb")
+    def __post_init__(self):
+        self.reader = open(self.file_path, "rb")
 
         self.reader.seek(0)
         header_data = self.reader.read(24)
 
-        unpacked = struct.unpack('<4sIHHI', header_data)
+        unpacked = struct.unpack('4sIIIHHI', header_data)
+        print(unpacked)
 
         self.type = unpacked[0]
         self.file_count = unpacked[1]
-        self.encryption_flag = unpacked[2]
-        self.hashing_mode = unpacked[3]
-        self.index_start_offset = unpacked[4]
+        self.encryption_flag = unpacked[3]
+        self.hashing_mode = unpacked[4]
+        self.index_start_offset = unpacked[5]
         
         self.type = self.type.decode('utf-8')[::-1]  # Reverse and decode type string
         self.use_nxfn = self.encryption_flag == 256
@@ -72,6 +78,20 @@ class NPKFile:
         buf = self.reader.read(4 * self.file_count)
         self.reader.seek(current_pos)
         return len(buf) // self.file_count
+
+    def get_nxfn_files(self):
+        if self.use_nxfn:
+            nxfn_offset = self.index_start_offset + (self.file_count * self.get_info_size()) + 16
+            self.reader.seek(nxfn_offset)
+            return [x for x in self.reader.read().split(b'\x00') if x != b'']
+        return []
+    
+    def to_index_start_offset(self):
+        self.reader.seek(self.index_start_offset)
+
+    def read_index(self):
+        self.reader.read(self.file_count*self.get_info_size())
+
 
 # Return name of compression type based on file"s header
 def parse_compression_type(data: bytes) -> str:
