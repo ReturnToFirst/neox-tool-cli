@@ -22,15 +22,3 @@ def get_decompression_algorithm_name(compression_flag: int = 0) -> str:
         5: "Unknown"
     }
     return compression_algorithms.get(compression_flag, None)
-
-def readuint64(f: io.BufferedReader) -> int:
-    return struct.unpack('Q', f.read(8))[0]
-
-def readuint32(f: io.BufferedReader) -> int:
-    return struct.unpack('I', f.read(4))[0]
-
-def readuint16(f: io.BufferedReader) -> int:
-    return struct.unpack('H', f.read(2))[0]
-
-def readuint8(f: io.BufferedReader) -> int:
-    return struct.unpack('B', f.read(1))[0]
