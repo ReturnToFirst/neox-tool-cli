@@ -1,8 +1,7 @@
 import io
+import struct
 from dataclasses import dataclass
-from utils import readuint16, readuint32, readuint64, readuint8
 from pathlib import Path
-
 
 @dataclass
 class NPKIndex:
@@ -15,6 +14,25 @@ class NPKIndex:
     compression_flag: int
     encryption_flag: int
 
+    def __post_init__(self, f:io.BufferedReader, info_size:int, index_offset:int):
+        if info_size == 28:
+            sign_format = '<I'
+        elif info_size == 32:
+            sign_format = '<Q'
+
+        data_format = f'{sign_format}IIIIHH'
+        data_size = struct.calcsize(data_format)
+        data = f.read(data_size)
+
+        unpacked = struct.unpack(data_format, data)
+
+        self.file_offset = unpacked[1]
+        self.file_length = unpacked[2]
+        self.file_original_length = unpacked[3]
+        self.crc_compressed = unpacked[4]
+        self.crc_original = unpacked[5]
+        self.compression_flag = unpacked[6]
+        self.encryption_flag = unpacked[7]
 
 @dataclass
 class NPKFile:
@@ -31,33 +49,19 @@ class NPKFile:
     def __post_init__(self, file_path: Path):
         self.reader = open(file_path, "rb")
 
-        self.type = self.get_type()
-        self.file_count = self.get_file_count()
-        self.encryption_flag = self.get_encrypthion_flag()
-        self.use_nxfn = True if self.encryption_flag == "256" else False
-        self.hashing_mode = self.get_hashing_mode()
-        self.index_start_offset = self.get_index_start_offset()
-
-    def get_type(self):
         self.reader.seek(0)
-        type_hex = hex(readuint32(self.reader))[2:]  # Remove the '0x' prefix
-        return bytes.fromhex(type_hex)[::-1].decode()
+        header_data = self.reader.read(24)
 
-    def get_file_count(self):
-        self.reader.seek(4)
-        return readuint32(self.reader)
+        unpacked = struct.unpack('<4sIHHI', header_data)
 
-    def get_encrypthion_flag(self):
-        self.reader.seek(12)
-        return readuint16(self.reader)
-
-    def get_hashing_mode(self):
-        self.reader.seek(16)
-        return readuint16(self.reader)
-    
-    def get_index_start_offset(self):
-        self.reader.seek(20)
-        return readuint32(self.reader)
+        self.type = unpacked[0]
+        self.file_count = unpacked[1]
+        self.encryption_flag = unpacked[2]
+        self.hashing_mode = unpacked[3]
+        self.index_start_offset = unpacked[4]
+        
+        self.type = self.type.decode('utf-8')[::-1]  # Reverse and decode type string
+        self.use_nxfn = self.encryption_flag == 256
 
 
 # Determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data )
