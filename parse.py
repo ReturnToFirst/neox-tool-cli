@@ -62,17 +62,16 @@ class NPKFile:
         
         self.type = self.type.decode('utf-8')[::-1]  # Reverse and decode type string
         self.use_nxfn = self.encryption_flag == 256
-
-
-# Determines the info size by basic math (from the start of the index pointer // EOF or until NXFN data )
-def get_info_size(f:io.BufferedReader, hash_mode: int, encrypt_mode:int , index_offset:int , files_count: int):
-    if encrypt_mode == 256 or hash_mode == 2:
-        return 0x1C
-    indexbuf = f.tell()
-    f.seek(index_offset)
-    buf = f.read()
-    f.seek(indexbuf)
-    return len(buf) // files_count
+        
+    def get_info_size(self) -> int:
+        if self.encryption_flag == 256 or self.hashing_mode == 2:
+            return 0x1C
+        current_pos = self.reader.tell()
+        self.reader.seek(self.index_start_offset)
+        # Read the first 4 bytes to determine buffer size per file
+        buf = self.reader.read(4 * self.file_count)
+        self.reader.seek(current_pos)
+        return len(buf) // self.file_count
 
 # Return name of compression type based on file"s header
 def parse_compression_type(data: bytes) -> str:
